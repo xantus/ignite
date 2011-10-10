@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+
+# http://github.com/kraih/mojo
+use FindBin;
+use lib map { "$FindBin::Bin/../$_" } qw( lib mojo/lib );
+
+# http://mojolicio.us/
+use Mojolicious::Lite;
+
+get '/' => sub {
+    shift->render_data('ok');
+};
+
+@ARGV = 'daemon' unless @ARGV;
+
+app->start;
+

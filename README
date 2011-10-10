@@ -1,7 +1,25 @@
-Mojo Event Bus
+Ignite - The Mojo Event Bus
 --------------
 Simple, Useful, Fun
 
 
 http://mojolicio.us/
 
+
+
+Demo Quick Start
+-----------
+
+Linux/Mac flavors
+
+./run
+
+Windows
+
+run.bat
+
+
+Visit http://127.0.0.1:3000/
+
+
+See examples/lite and plugins/lite

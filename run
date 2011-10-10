@@ -1,0 +1,8 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use FindBin;
+
+exec( ( $^O eq 'MSWin32' ? 'perl' : () ), "$FindBin::Bin/examples/lite", @ARGV );

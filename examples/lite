@@ -1,0 +1,53 @@
+#!/usr/bin/env perl
+
+# http://github.com/kraih/mojo
+use FindBin;
+use lib map { "$FindBin::Bin/../$_" } qw( lib mojo/lib );
+
+# http://mojolicio.us/
+use Mojolicious::Lite;
+use Ignite;
+
+$SIG{__WARN__} = sub {
+    my @items = @_;
+    # drop the \n
+    chomp foreach @items;
+    @_ = ( app->log, @items );
+    goto &Mojo::Log::warn;
+};
+
+my $config = plugin JSONConfig => {
+    file => 'server.conf',
+
+    default => {
+        doc_root => 'public',
+        mode => 'development',
+        content_types => {
+            "htc" => "text/x-component",
+            "ogv" => "video/ogg",
+            "ogm" => "video/ogg",
+            "ogg" => "application/ogg"
+        }
+    }
+};
+
+if ( $config->{content_types} ) {
+    while( my ( $k, $v ) = each %{$config->{content_types}} ) {
+        app->types->type( $k => $v );
+    }
+}
+
+app->static->root( app->home->rel_dir( $config->{doc_root} ) );
+
+#get '/' => sub { shift->redirect_to('index.html'); };
+get '/' => sub { shift->serve('index.html'); };
+
+my $ignite = Ignite->new;
+
+plugin mount => { '/event-bus' => "$FindBin::Bin/../mount/ignite" };
+
+@ARGV = 'daemon' unless @ARGV;
+
+app->start;
+
+1;
