@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Mojo::Base -base;
+use Ignite::ClientData::Memory;
 use Ignite::Mailbox::Memory;
 use Ignite::Cache::LRU;
 use Ignite::ClusterLock;
@@ -26,6 +27,10 @@ has clusterLock => sub {
     Ignite::ClusterLock->new;
 };
 
+has clientData => sub {
+    Ignite::ClientData::Memory->new;
+};
+
 sub import {
     my $caller = caller;
 
@@ -38,13 +43,13 @@ sub import {
 
     my $ignite = undef;
 
-    *{"${caller}::on_event"} = sub {
-        my $event = shift or die 'usage: socketio \'event\' => sub { ... }';
-
-        die "You must ignite->init( \$couchurl ) first\n" unless defined $ignite;
-
-        $ignite->plugins->add_hook( $event => @_ );
-    };
+#    *{"${caller}::on_event"} = sub {
+#        my $event = shift or die 'usage: socketio \'event\' => sub { ... }';
+#
+#        die "You must ignite->init( \$couchurl ) first\n" unless defined $ignite;
+#
+#        $ignite->plugins->add_hook( $event => @_ );
+#    };
 
     *{"${caller}::ignite"} = sub {
         # auto load the plugin
@@ -80,7 +85,7 @@ sub singleton { $singleton ||= shift->new(@_) }
 sub publishTo {
     my ( $self, $channel, $payload ) = @_;
 
-    $self->publish( Ignite::Event->new( channel => $channel, payload => $payload ) );
+    $self->publish( Ignite::Event->new( channel => $channel, data => $payload ) );
 
     return;
 }
@@ -89,7 +94,7 @@ sub publish {
     my ( $self, $event ) = @_;
 
     # XXX we've seen this event already?
-    return if defined $event->version;
+    #return if defined $event->version;
 
     my $key = $event->versionCacheKey;
     my $cache = $self->cache;
@@ -109,5 +114,7 @@ sub publish {
 
     return;
 }
+
+
 
 1;

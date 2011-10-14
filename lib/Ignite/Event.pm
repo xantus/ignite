@@ -5,7 +5,7 @@ use warnings;
 
 use Mojo::Base -base;
 
-has [qw/ version channel payload /];
+has [qw/ version channel data /];
 
 sub versionCacheKey {
     return 'v'.shift->version;

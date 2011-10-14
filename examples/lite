@@ -20,7 +20,7 @@ my $config = plugin JSONConfig => {
     file => 'server.conf',
 
     default => {
-        doc_root => 'public',
+        doc_root => '../public',
         mode => 'development',
         content_types => {
             "htc" => "text/x-component",
@@ -40,7 +40,7 @@ if ( $config->{content_types} ) {
 app->static->root( app->home->rel_dir( $config->{doc_root} ) );
 
 #get '/' => sub { shift->redirect_to('index.html'); };
-get '/' => sub { shift->serve('index.html'); };
+get '/' => sub { shift->redirect_to('index.html'); };
 
 my $ignite = Ignite->new;
 

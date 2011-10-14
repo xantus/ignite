@@ -9,6 +9,7 @@ has [qw/ noBugs /];
 
 has events => sub { {} };
 has versions => sub { {} };
+has eventLimit => 1_000;
 
 sub getVersion {
     my ( $self, $channel ) = @_;
@@ -24,10 +25,13 @@ sub append {
 
     $self->versions->{$channel} = $version;
 
-    # TODO limit num of events?
     my $ev = $self->events->{$channel} ||= [];
-
-    push( @$ev, $event );
+    if ( @$ev > $self->eventLimit ) {
+        my $l = @$ev - $self->eventLimit;
+        splice( @$ev, $l * -1, $l, $event );
+    } else {
+        push( @$ev, $event );
+    }
 
     return;
 }
