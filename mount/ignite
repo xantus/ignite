@@ -6,9 +6,48 @@ use lib map { "$FindBin::Bin/../$_" } qw( lib mojo/lib );
 
 # http://mojolicio.us/
 use Mojolicious::Lite;
+use Ignite;
 
 get '/' => sub {
     shift->render_data('ok');
+};
+
+# server sent events
+get '/sse' => sub {
+    my $self = shift;
+
+    my $cid = $self->param('cid');
+
+    my $client = ignite->getClient( $cid );
+    my $active = time;
+
+    $self->res->headers->connection("Keep-Alive");
+    $self->res->headers->content_type("text/event-stream");
+
+    $client->startSSE( $self );
+
+    return;
+};
+
+post '/event' => sub {
+    my $self = shift;
+
+    my $events;
+
+    return $self->render_json({ error => 'no events to send' })
+        unless $events = $self->param('events') && substr( $events, 0, 1 ) eq '[';
+
+    return $self->render_json({ error => 'no cid' })
+        unless my $cid = $self->param('cid');
+
+    my $client = ignite->getClient( $cid );
+
+    my $ev = Mojo::JSON->decode( $events );
+    foreach ( @$ev ) {
+        $client->publish( $_ );
+    }
+
+    return $self->render_json({ success => Mojo::JSON->true });
 };
 
 @ARGV = 'daemon' unless @ARGV;

@@ -1,0 +1,9 @@
+
+
+
+JS Lib
+  * WebSocket
+  * EventSource
+    * Sync send xhr send queue on page unload
+    * X-EventID - track signal versions (is it Int only?)
+  * LongPolling

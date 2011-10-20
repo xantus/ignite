@@ -3,13 +3,15 @@ package Ignite;
 use strict;
 use warnings;
 
-use Mojo::Base -base;
+use Mojo::Base 'Mojo::EventEmitter';
 use Ignite::ClientData::Memory;
 use Ignite::Mailbox::Memory;
 use Ignite::Cache::LRU;
 use Ignite::ClusterLock;
 use Ignite::Event;
 use Scalar::Util qw( weaken );
+
+our $VERSION = '0.01';
 
 our $singleton;
 
@@ -30,6 +32,8 @@ has clusterLock => sub {
 has clientData => sub {
     Ignite::ClientData::Memory->new;
 };
+
+has clientClass => 'Ignite::Client';
 
 sub import {
     my $caller = caller;
@@ -82,6 +86,12 @@ sub new {
 
 sub singleton { $singleton ||= shift->new(@_) }
 
+sub getClient {
+    my ( $self, $cid ) = @_;
+
+    return $self->clientClass->new( cid => $cid, data => $self->clientData->get( $cid ) );
+}
+
 sub publishTo {
     my ( $self, $channel, $payload ) = @_;
 
@@ -110,6 +120,7 @@ sub publish {
         $event->version( ++$version );
         $self->mbox->append( $event );
         $cache->put( $key, $version );
+        $self->emit( $event->channel, $event );
     });
 
     return;
