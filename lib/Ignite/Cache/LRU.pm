@@ -22,6 +22,9 @@ has value => sub { [] };
 has next => sub { [] };
 has prev => sub { [] };
 
+sub KEY() { 0 }
+sub VALUE() { 1 }
+
 sub flush {
     my $self = shift;
 
@@ -80,17 +83,21 @@ sub deleteItem {
     my ( $self, $key ) = @_;
     return unless exists $self->idx->{ $key };
 
-    my $value = $self->value->[ $self->idx->{ $key } ];
+    my $value = $self->value->[ $self->idx->{ $key } ]->[ VALUE ];
     $self->deleteNode( $key );
     return $value;
 }
 
 *put = *setItem;
+*set = *setItem;
 
 sub setItem {
     my ( $self, $key, $value ) = @_;
 
+    # TODO when setting an undef value, should we delete it instead?
     return if ( !defined( $key ) || !defined( $value ) );
+
+    warn "setting item $key to value $value\n";
 
     my $lru = $self->lru;
 
@@ -99,11 +106,12 @@ sub setItem {
     if ( $self->idx->{ $key } ) {
         $idx = $self->deleteNode( $key );
     } elsif ( $self->size >= $self->maxSize && defined( $self->value->[ $lru ] ) ) {
-        $idx = $self->deleteNode( $self->value->[ $lru ]->[ 0 ] );
+        $idx = $self->deleteNode( $self->value->[ $lru ]->[ KEY ] );
     } elsif ( @{$self->key} && !defined $self->value->[ $lru ] ) {
         $idx = $lru;
     }
 
+    # undef idx is ok here
     $self->insertNode( $key, $value, $idx );
 
     return $value;
@@ -113,6 +121,8 @@ sub setItem {
 
 sub getItem {
     my ( $self, $key ) = @_;
+
+    warn "gettng item $key\n";
 
     # index of node requested
     my $idx = $self->idx->{ $key };
@@ -130,7 +140,7 @@ sub getItem {
     # move it to the front
     $self->setMRU( $idx );
 
-    return $self->value->[ $idx ];
+    return $self->value->[ $idx ]->[ VALUE ];
 }
 
 sub getItems {
@@ -165,8 +175,10 @@ sub touchItem {
 sub setMRU {
     my ( $self, $idx ) = @_;
 
-    my $prevnode = $self->prev->[ $idx ];
-    my $nextnode = $self->next->[ $idx ];
+    warn "set MRU to $idx\n";
+
+    my $prevnode = $self->prev->[ $idx ] || 0;
+    my $nextnode = $self->next->[ $idx ] || 0;
 
     if ( $prevnode == -1 ) {
         # this can happen if you select the mru
@@ -188,8 +200,10 @@ sub setMRU {
 sub setLRU {
     my ( $self, $idx ) = @_;
 
-    my $nextnode = $self->next->[ $idx ];
-    my $prevnode = $self->prev->[ $idx ];
+    warn "set LRU to $idx\n";
+
+    my $nextnode = $self->next->[ $idx ] || 0;
+    my $prevnode = $self->prev->[ $idx ] || 0;
 
     if ( $nextnode == -1 ) {
         warn "LRUCache::setLRU  idx:$idx has an inconsistent NEXT key (NEXT:-1 but LRU != idx)"
@@ -210,15 +224,18 @@ sub setLRU {
 sub connectNodes {
     my ( $self, $prevnode, $nextnode ) = @_;
 
+    warn "connecting nodes $prevnode and $nextnode\n";
     # match peers to each other
 
     if ( $prevnode == -1 ) {
+        warn "$nextnode is now the MRU\n";
         $self->mru( $nextnode );
     } else {
         $self->next->[ $prevnode ] = $nextnode;
     }
 
-    if ($nextnode == -1) {
+    if ( $nextnode == -1 ) {
+        warn "$prevnode is now the LRU\n";
         $self->lru( $prevnode );
     } else {
         $self->prev->[ $nextnode ] = $prevnode;
@@ -237,7 +254,7 @@ sub deleteNode {
 
     delete $self->idx->{ $key };
 
-    $self->key->[ $idx ] = undef;
+    #$self->key->[ $idx ] = undef;
     $self->value->[ $idx ] = undef;
 
     # the node isnt actually deleted, it is reused
@@ -250,6 +267,7 @@ sub insertNode {
     # insert new node
     if ( !defined( $idx ) ) {
         $idx = $self->{size}++;
+        warn "new key, idx is $idx\n";
     }
 
     # move it to the front
