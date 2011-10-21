@@ -55,14 +55,16 @@ sub import {
 #        $ignite->plugins->add_hook( $event => @_ );
 #    };
 
-    *{"${caller}::ignite"} = sub {
+    *{"${caller}::ignite"} = *singleton;
+
+    #sub {
+    #    $singleton ||= shift->new(@_)
         # auto load the plugin
         #unless ( defined $ignite ) {
         #    $ENV{IGNITE_PLUGIN} = $ignite = $app->plugins->load_plugin( $app, 'ignite' );
         #}
         #return $ignite;
-        return Ignite->singleton;
-    };
+    #};
 }
 
 sub new {
