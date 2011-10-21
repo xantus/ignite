@@ -4,6 +4,8 @@ use Mojo::Base 'Mojo::EventEmitter';
 
 has [qw/ active cid data /];
 
+has ssePingTime => 15;
+
 use Scalar::Util qw( weaken );
 
 sub startSSE {
@@ -13,6 +15,7 @@ sub startSSE {
 #    my $version = $app->req->headers->header("Last-Event-ID");
 
     weaken $self;
+    weaken $app;
 
     $self->active( time );
 
@@ -31,14 +34,14 @@ sub startSSE {
         $app->write($ev->to_sse);
     });
 
-    my $id = Mojo::IOLoop->singleton->recurring(15 => sub {
+    my $id = Mojo::IOLoop->singleton->recurring($self->ssePingTime => sub {
         # TODO active
         $app->write(":\n");
     });
 
     $self->on(_finish => sub {
         Mojo::IOLoop->singleton->drop($id);
-        $client->unsubscribe_all;
+        $self->unsubscribe_all;
         return;
     });
 
